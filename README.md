@@ -9,11 +9,6 @@ The script takes the database file path and model file path, creates and trains 
 
 3. Flask Web App is the web application the employees can use during emergencies to classify messages into respective categories. The web app also displays visualizations of the data.
 
-4. models/ETL Pipeline Preparation.ipynb: ETL python notebook to generate process_data.py
-
-4. ML Pipeline Preparation.ipynb: ML python notebook to generate train_classifier.py
-
-
 ### Instructions:
 1. Run the following commands in the project's root directory to set up your database and model.
 
