@@ -13,10 +13,9 @@ from sklearn.model_selection import train_test_split
 import re
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
-from sklearn.neighbors import KNeighborsClassifier
 import pickle as pkl
 
 def load_data(database_filepath):
@@ -30,7 +29,7 @@ def load_data(database_filepath):
         y.keys - Just returning the columns of the Y columns
     '''
     engine = create_engine('sqlite:///' + database_filepath)
-    df =  pd.read_sql_table('Disasters', engine)
+    df =  pd.read_sql_table('DisasterResponse', engine)
     X = df.message.values
     y = df.iloc[:,5:]
     return X, y, y.keys()
@@ -60,20 +59,21 @@ def build_model(X_train,y_train):
         Returns a pipeline model that has gone through tokenization, count vectorization, 
         TFIDTransofmration and created into a ML model
     '''
+    moc = MultiOutputClassifier(RandomForestClassifier())
+
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
-        ('clf', MultiOutputClassifier(RandomForestClassifier()))
-    ])
-    
-    parameters = {  
-        'clf__estimator__min_samples_split': [2, 4],
-    }
-    cv = GridSearchCV(estimator=pipeline, param_grid=parameters)
-    cv.fit(X_train,y_train)
+        ('clf', moc)
+        ])
+
+    parameters = {'clf__estimator__max_depth': [10, 50, None],
+              'clf__estimator__n_estimators':[5, 10, 25]}
+
+    cv = GridSearchCV(cv=3, estimator=pipeline, param_grid=parameters)
     return cv
 
-def evaluate_model(pipeline, X_test, Y_test, category_names):
+def evaluate_model(model, X_test, y_test, category_names):
     '''
     INPUT 
         pipeline: The model that is to be evaluated
@@ -85,8 +85,9 @@ def evaluate_model(pipeline, X_test, Y_test, category_names):
         However, it prints out the precision, recall and f1-score
     '''
     # predict on test data
-    y_pred = pipeline.predict(X_test)
-    print(classification_report(Y_test, y_pred, target_names=Y_test.keys()))
+    y_pred = model.predict(X_test)
+    print(classification_report(y_test, y_pred, target_names=category_names))
+    results = pd.DataFrame(columns=['Category', 'f_score', 'precision', 'recall'])
 
 def save_model(model, model_filepath):
     '''
